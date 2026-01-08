@@ -1,10 +1,10 @@
 import os
 import json
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import google.generativeai as genai
 from pydantic import BaseModel
 from typing import List
-import google.generativeai as genai
 from dotenv import load_dotenv
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 
 # Load environment variables from .env file
 load_dotenv()
@@ -59,7 +59,8 @@ def read_root():
 @app.post("/check-aura", response_model=MatchResponse)
 async def check_aura(
         me: UploadFile = File(...),
-        target: UploadFile = File(...)
+        target: UploadFile = File(...),
+        language: str = Query("Turkish", description="Output language (e.g., English, Turkish, Spanish)")
 ):
     """
     Analyzes two uploaded images (User vs Target) to determine visual compatibility and vibe.
@@ -71,31 +72,32 @@ async def check_aura(
         target_bytes = await target.read()
 
         # System Prompt for the AI
-        prompt = """
-        You are a brutally honest but constructive dating coach and vibe analyst. 
-        Analyze these two people based on their visual "aura", style, grooming, and context.
+        prompt = f"""
+                You are a brutally honest but constructive dating coach and vibe analyst. 
+                Analyze these two people based on their visual "aura", style, grooming, and context.
 
-        Person 1 is the USER. Person 2 is the TARGET.
+                IMPORTANT: PROVIDE THE ENTIRE OUTPUT IN {language.upper()} LANGUAGE.
 
-        Task: Determine if Person 2 would be interested in Person 1 based on visual compatibility.
+                Person 1 is the USER. Person 2 is the TARGET.
 
-        Rules:
-        1. Be realistic. If the styles clash heavily (e.g., one looks extremely messy/casual and the other is high-fashion/formal), point it out.
-        2. Do NOT be mean about physical features (nose, height, etc.). Focus on "Vibe", "Style", "Effort", and "Energy".
-        3. Give a compatibility score (0-100).
-        4. If the score is low, say "Likely wouldn't look" but explain WHY based on presentation/vibe.
-        5. Provide output strictly in JSON format.
+                Task: Determine if Person 2 would be interested in Person 1 based on visual compatibility.
 
-        JSON Structure:
-        {
-            "score": 75,
-            "title": "Short catchy title (e.g. 'High Risk, High Reward' or 'A Perfect Vibe Match')",
-            "description": "2-3 sentences explaining the dynamic.",
-            "red_flags": ["List 2 potential clashes (e.g., 'Target looks too high maintenance for User's chill vibe')"],
-            "green_flags": ["List 2 matching points"],
-            "verdict": "Direct answer: 'Yes, likely', 'Maybe with effort', or 'No, probably not'."
-        }
-        """
+                Rules:
+                1. Be realistic. If styles clash, point it out.
+                2. Do NOT be mean about genetics. Focus on "Vibe", "Style", "Effort".
+                3. Give a compatibility score (0-100).
+                4. Output strictly in JSON.
+
+                JSON Structure (Translate values to {language}):
+                {{
+                    "score": 75,
+                    "title": "Short catchy title in {language}",
+                    "description": "2-3 sentences explaining the dynamic in {language}.",
+                    "red_flags": ["List 2 potential clashes in {language}"],
+                    "green_flags": ["List 2 matching points in {language}"],
+                    "verdict": "Direct answer in {language} (e.g., 'Yes, likely', 'No')"
+                }}
+                """
 
         # Prepare content for Gemini (Multimodal: Text + Image + Image)
         content = [
@@ -121,7 +123,8 @@ async def check_aura(
 @app.post("/generate-rizz", response_model=RizzResponse)
 async def generate_rizz(
         image: UploadFile = File(...),
-        extra_context: str = "Make it impressive but casual."
+        extra_context: str = "Make it impressive but casual.",
+        language: str = Query("Turkish", description="Target language")
 ):
     """
     Analyzes an Instagram story screenshot and generates conversation starters (Rizz lines).
@@ -131,33 +134,33 @@ async def generate_rizz(
 
         # System Prompt: The "Rizz God" Persona
         prompt = f"""
-        You are a world-class social dynamics expert and dating coach. 
-        Your task is to generate the perfect "reply" to this Instagram Story.
+                You are a world-class social dynamics expert. 
+                Generate the perfect "reply" to this Instagram Story.
 
-        Context provided by user: {extra_context}
+                TARGET LANGUAGE: {language.upper()}
 
-        Step 1: Analyze the image. Is it a selfie? Food? Travel? A meme? 
-        Step 2: Generate 3 DISTINCT opening lines to start a conversation.
+                Step 1: Analyze the image.
+                Step 2: Generate 3 DISTINCT opening lines in {language}.
 
-        Guidelines:
-        - NO "Hi", "Hello", "Nice pic". Those are banned.
-        - Be specific. If there is a cat, mention the cat. If it's sushi, mention the sushi.
-        - Keep it short (Instagram DMs are quick).
-        - Different vibes: 
-            1. Funny/Witty (Playful teasing)
-            2. Flirty/Bold (Direct interest)
-            3. Casual/Observational (Low pressure)
+                CRITICAL CULTURAL INSTRUCTION:
+                - Do not just translate. Use the natural slang, humor, and dating culture of {language}.
+                - If {language} is Turkish, use natural phrases like "Oha", "Yok artık" if appropriate.
+                - If {language} is English, use Gen-Z slang if the vibe fits.
 
-        Return strictly JSON format:
-        {{
-            "image_analysis": "Brief description of what is in the photo (e.g., 'A golden retriever playing in a park')",
-            "options": [
-                {{ "tone": "Funny", "text": "...", "explanation": "..." }},
-                {{ "tone": "Flirty", "text": "...", "explanation": "..." }},
-                {{ "tone": "Casual", "text": "...", "explanation": "..." }}
-            ]
-        }}
-        """
+                Guidelines:
+                - NO generic "Hello".
+                - Be specific to the photo content.
+
+                Return strictly JSON:
+                {{
+                    "image_analysis": "Brief description in {language}",
+                    "options": [
+                        {{ "tone": "Funny", "text": "Line in {language}", "explanation": "Why this works (in {language})" }},
+                        {{ "tone": "Flirty", "text": "Line in {language}", "explanation": "Why this works (in {language})" }},
+                        {{ "tone": "Casual", "text": "Line in {language}", "explanation": "Why this works (in {language})" }}
+                    ]
+                }}
+                """
 
         content = [
             prompt,
