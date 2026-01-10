@@ -47,6 +47,15 @@ class RizzResponse(BaseModel):
     image_analysis: str
     options: List[RizzOption]
 
+# --- ARGUMENT JUDGE MODEL ---
+class ArgumentResponse(BaseModel):
+    winner: str 
+    score: int
+    analysis: str 
+    winning_point: str 
+    weak_point: str
+    advice: str 
+
 # --- ENDPOINTS ---
 
 @app.get("/")
@@ -177,6 +186,57 @@ async def generate_rizz(
     except Exception as e:
         print(f"Rizz generation error: {e}")
         raise HTTPException(status_code=500, detail="Rizz machine broken. Try again.")
+
+@app.post("/judge-argument", response_model=ArgumentResponse)
+async def judge_argument(
+    image: UploadFile = File(...),
+    context: str = "This is a chat with my partner.",
+    language: str = Query("Turkish", description="Output language")
+):
+    """
+    Analyzes a chat screenshot to determine who is winning the argument.
+    Provides tactical advice and logical fallacy detection.
+    """
+    try:
+        image_bytes = await image.read()
+
+        prompt = f"""
+        You are an expert Debate Judge and Psychologist specializing in conflict resolution and manipulation detection.
+        Analyze this chat screenshot provided by the user.
+        
+        TARGET LANGUAGE: {language.upper()}
+        
+        Task:
+        1. Identify the two parties (Sender vs Receiver).
+        2. Determine who is currently "winning" the argument based on logic, emotional control, and leverage.
+        3. Identify any logical fallacies (gaslighting, strawman, ad hominem).
+        4. Provide a tactical advice for the user to turn the tables or end the argument.
+        
+        Output strictly in JSON format (Translate all values to {language}):
+        {{
+            "winner": "Name/Side who is winning (e.g. 'Grey Bubbles' or 'The Partner')",
+            "score": 85,
+            "analysis": "Brief, sharp analysis of the power dynamic in {language}.",
+            "winning_point": "The strongest point made by the winner in {language}.",
+            "weak_point": "The mistake or weak spot of the loser in {language}.",
+            "advice": "A strategic, Machiavellian piece of advice for the user in {language}."
+        }}
+        """
+
+        content = [
+            prompt,
+            {"mime_type": "image/jpeg", "data": image_bytes}
+        ]
+
+        response = model.generate_content(content)
+        cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
+        result = json.loads(cleaned_text)
+
+        return result
+
+    except Exception as e:
+        print(f"Argument judge error: {e}")
+        raise HTTPException(status_code=500, detail="The judge is out to lunch.")
 
 
 if __name__ == "__main__":
