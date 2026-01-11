@@ -5,14 +5,24 @@ from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Aura Backend API",
-    description="AI-Powered Dating Assistant Backend for analyzing vibe and compatibility."
+    title="Aura AI Engine",
+    description="Scalable backend API for Aura dating assistant. Powered by Google Gemini Generative AI.",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- CONFIGURATION ---
