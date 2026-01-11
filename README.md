@@ -103,9 +103,10 @@ The architecture prioritizes reliability, iteration speed, and production simpli
 
 ## Notes
 
-The iOS client application is maintained in a separate repository by the iOS developer.
+This repository is a fork created specifically for backend development and production deployment purposes.
 
-This repository contains the backend service responsible for all AI-driven functionality, API design, and production operation of the system.
+The iOS client application is actively developed and maintained in the original repository owned by the iOS developer. The iOS-related files present in this repository should be considered a non-authoritative snapshot and are not used for production builds.
 
----
+This separation allows independent iteration on backend systems, AI logic, and infrastructure without coupling client-side development workflows.
+
 
