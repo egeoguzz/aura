@@ -56,6 +56,16 @@ class ArgumentResponse(BaseModel):
     weak_point: str
     advice: str 
 
+# --- CHAT REPLY MODELS ---
+class ReplyOption(BaseModel):
+    tone: str 
+    text: str 
+    explanation: str 
+
+class ChatReplyResponse(BaseModel):
+    analysis: str 
+    replies: List[ReplyOption]
+
 # --- ENDPOINTS ---
 
 @app.get("/")
@@ -237,6 +247,67 @@ async def judge_argument(
     except Exception as e:
         print(f"Argument judge error: {e}")
         raise HTTPException(status_code=500, detail="The judge is out to lunch.")
+
+@app.post("/generate-chat-reply", response_model=ChatReplyResponse)
+async def generate_chat_reply(
+    image: UploadFile = File(...),
+    context: str = "I like this person, help me keep the conversation going.",
+    language: str = Query("Turkish", description="Output language")
+):
+    """
+    Analyzes a chat screenshot (WhatsApp, iMessage, DM) and generates the perfect replies
+    to continue or save the conversation.
+    """
+    try:
+        image_bytes = await image.read()
+
+        prompt = f"""
+        You are a top-tier Dating & Communication Coach. 
+        The user needs help replying to this specific chat conversation.
+        
+        TARGET LANGUAGE: {language.upper()}
+        
+        Task:
+        1. Read the chat history in the image. Identify who is who.
+        2. Analyze the "Vibe" (Is the other person dry? Enthusiastic? Ghosting?).
+        3. Generate 3 DISTINCT replies for the user to send NEXT.
+        
+        Options to generate:
+        - Option 1 (Cool/Low Investment): Matches their energy, doesn't try too hard.
+        - Option 2 (Playful/Teasing): Spices things up, creates tension.
+        - Option 3 (Direct/Bold): Moves things forward (date or topic change).
+        
+        CRITICAL:
+        - Output strictly in {language}.
+        - Use natural slang/texting style suitable for {language}.
+        - Keep replies relatively short (like a real text).
+        
+        Return strictly JSON:
+        {{
+            "analysis": "Brief analysis of the situation in {language} (e.g. 'She is giving short answers, pull back a bit').",
+            "replies": [
+                {{ "tone": "Cool/Casual", "text": "Reply text in {language}", "explanation": "Why this works in {language}" }},
+                {{ "tone": "Playful", "text": "Reply text in {language}", "explanation": "Why this works in {language}" }},
+                {{ "tone": "Direct", "text": "Reply text in {language}", "explanation": "Why this works in {language}" }}
+            ]
+        }}
+        """
+
+        content = [
+            prompt,
+            {"mime_type": "image/jpeg", "data": image_bytes}
+        ]
+
+        response = await model.generate_content_async(content)
+        
+        cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
+        result = json.loads(cleaned_text)
+
+        return result
+
+    except Exception as e:
+        print(f"Chat reply error: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate a reply.")
 
 
 if __name__ == "__main__":
