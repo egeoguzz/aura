@@ -125,7 +125,7 @@ async def check_aura(
         ]
 
         # Generate response
-        response = model.generate_content(content)
+        response = await model.generate_content_async(content)
 
         # Clean up JSON string (remove markdown code blocks if present)
         cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
@@ -185,7 +185,7 @@ async def generate_rizz(
             {"mime_type": "image/jpeg", "data": image_bytes}
         ]
 
-        response = model.generate_content(content)
+        response = await model.generate_content_async(content)
 
         # Clean up JSON
         cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
@@ -238,7 +238,7 @@ async def judge_argument(
             {"mime_type": "image/jpeg", "data": image_bytes}
         ]
 
-        response = model.generate_content(content)
+        response = await model.generate_content_async(content)
         cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
         result = json.loads(cleaned_text)
 
