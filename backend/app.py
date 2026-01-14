@@ -55,7 +55,8 @@ class RizzOption(BaseModel):
 
 class RizzResponse(BaseModel):
     image_analysis: str
-    options: List[RizzOption]
+    rizz_line: str
+    explanation: str
 
 # --- ARGUMENT JUDGE MODEL ---
 class ArgumentResponse(BaseModel):
@@ -161,40 +162,38 @@ async def generate_rizz(
         image_bytes = await image.read()
 
         # System Prompt: The "Rizz God" Persona
-        prompt = f"""
+        prompt = """
                 You are a world-class social dynamics expert. 
-                Generate the perfect "reply" to this Instagram Story.
+                Generate the PERFECT "reply" to this Instagram Story.
 
-                TARGET LANGUAGE: {language.upper()}
+                TARGET LANGUAGE: {lang_upper}
+                USER'S SPECIFIC CONTEXT/VIBE: {context}
 
-                Step 1: Analyze the image.
-                Step 2: Generate 3 DISTINCT opening lines in {language}.
+                Step 1: Analyze the image details.
+                Step 2: Generate ONE high-quality, creative opening line in {lang} that strictly matches the user's vibe.
 
                 CRITICAL CULTURAL INSTRUCTION:
-                - Do not just translate. Use the natural slang, humor, and dating culture of {language}.
-                - If {language} is Turkish, use natural phrases like "Oha", "Yok artık" if appropriate.
-                - If {language} is English, use Gen-Z slang if the vibe fits.
+                - Do not just translate. Use the natural slang, humor, and dating culture of {lang}.
+                - If {lang} is Turkish, use natural phrases like "Oha", "Yok artık", "Şaka mı", "Aşırı iyi" if appropriate.
+                - If {lang} is English, use Gen-Z slang (rizz, no cap, vibe) if it fits.
 
                 Guidelines:
                 - NO generic "Hello".
-                - Be specific to the photo content.
+                - Be specific to the photo content and follow the user's vibe: "{context}".
 
                 Return strictly JSON:
                 {{
-                    "image_analysis": "Brief description in {language}",
-                    "options": [
-                        {{ "tone": "Funny", "text": "Line in {language}", "explanation": "Why this works (in {language})" }},
-                        {{ "tone": "Flirty", "text": "Line in {language}", "explanation": "Why this works (in {language})" }},
-                        {{ "tone": "Casual", "text": "Line in {language}", "explanation": "Why this works (in {language})" }}
-                    ]
+                    "image_analysis": "Brief description in {lang}",
+                    "rizz_line": "The perfect line in {lang}",
+                    "explanation": "Why this works (in {lang})"
                 }}
-                """
+                """.format(
+                    lang_upper=language.upper(), 
+                    context=extra_context, 
+                    lang=language
+                )
 
-        content = [
-            prompt,
-            {"mime_type": "image/jpeg", "data": image_bytes}
-        ]
-
+        content = [prompt, {"mime_type": "image/jpeg", "data": image_bytes}]
         response = await model.generate_content_async(content)
 
         # Clean up JSON
